@@ -1,3 +1,33 @@
+import os
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+def send_loyalty_reward_notification(member_name, points_balance, tier, reward):
+    power_automate_url = os.getenv("POWER_AUTOMATE_URL")
+
+    if not power_automate_url:
+        raise Exception("POWER_AUTOMATE_URL is not configured")
+
+    payload = {
+        "member_name": member_name,
+        "points_balance": points_balance,
+        "tier": tier,
+        "reward": reward
+    }
+
+    response = requests.post(
+        power_automate_url,
+        json=payload,
+        timeout=30
+    )
+
+    response.raise_for_status()
+
+    return response
+
 from fastapi import FastAPI,Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -9,6 +39,7 @@ from jose import jwt
 from datetime import datetime, timedelta
 from ai_assistant import ask_menu_ai
 from rag_context import get_rag_context
+from inventory_agent import create_agent_reorder_requests
 
 password_hash = PasswordHash.recommended()
 SECRET_KEY = "meridian-secret-key"
@@ -87,6 +118,55 @@ class ReorderStatusUpdate(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+
+
+
+class LoyaltyRewardNotification(BaseModel):
+    member_name: str
+    points_balance: int
+    tier: str
+    reward: str
+
+
+@app.post("/loyalty/reward-notification")
+def loyalty_reward_notification(data: LoyaltyRewardNotification):
+
+    # Loyalty reward threshold
+    REWARD_THRESHOLD = 1000
+
+    # Check whether the member has crossed the threshold
+    if data.points_balance < REWARD_THRESHOLD:
+        return {
+            "message": "Member has not crossed the reward threshold",
+            "notification_sent": False
+        }
+
+    try:
+        # Send reward details to Power Automate
+        send_loyalty_reward_notification(
+            data.member_name,
+            data.points_balance,
+            data.tier,
+            data.reward
+        )
+
+        return {
+            "message": "Loyalty reward notification sent successfully",
+            "notification_sent": True,
+            "member_name": data.member_name,
+            "points_balance": data.points_balance,
+            "tier": data.tier,
+            "reward": data.reward
+        }
+
+    except Exception as error:
+        print("Power Automate error:", error)
+
+        return {
+            "message": "Failed to send loyalty reward notification",
+            "notification_sent": False,
+            "error": str(error)
+        }
 
 
 @app.post("/inventory")
@@ -458,6 +538,37 @@ def create_reorder(
     }
 
 
+
+
+@app.post("/ai/inventory-agent")
+def run_inventory_reorder_agent(
+    current_user: dict = Depends(get_current_user)
+):
+
+    if current_user.get("role") != "manager":
+        return {
+            "message": "Only managers can run the inventory AI agent"
+        }
+
+    try:
+
+        requests = create_agent_reorder_requests()
+
+        return {
+            "message": "Inventory AI agent completed successfully",
+            "created_requests": requests
+        }
+
+    except Exception as error:
+
+        print("Inventory AI Agent error:", error)
+
+        return {
+            "message": "Inventory AI agent failed",
+            "error": str(error)
+        }
+
+
 @app.put("/reorders/{reorder_id}")
 def update_reorder_status(
     reorder_id: int,
@@ -705,3 +816,48 @@ def menu_ai_assistant(data: dict):
                 "your question. Please try again."
             )
         }
+
+
+
+@app.post("/ai/menu-assistant")
+def menu_ai_assistant(data: dict):
+
+    question = data.get("question", "").strip()
+
+    if not question:
+        return {
+            "answer": "Please enter a question about our menu."
+        }
+
+    try:
+
+        # Retrieve relevant information from the RAG system
+        rag_context = get_rag_context(
+            question,
+            top_k=3
+        )
+
+        # Generate the final AI answer
+        answer = ask_menu_ai(
+            question,
+            rag_context
+        )
+
+        return {
+            "answer": answer
+        }
+
+    except Exception as error:
+
+        print("RAG Assistant error:", error)
+
+        return {
+            "answer": (
+                "Sorry, I am temporarily unable to answer "
+                "your question. Please try again."
+            )
+        }
+
+
+
+    
