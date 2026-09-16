@@ -1,0 +1,51 @@
+# Day 20 example — CI/CD promotion pipeline: Dev -> QA with an approval gate
+#
+# Copy this file into your capstone repository at
+# .github/workflows/promote-dev-to-qa.yml, then replace every
+# [PLACEHOLDER — ...] below with your team's actual values before running it.
+# As written, it builds/tests/deploys lab/day11/sample-app — point every
+# path at your own capstone's build, test, and deploy steps instead once
+# they're ready.
+#
+# Sources:
+#   https://docs.github.com/en/actions/get-started/understand-github-actions
+#   https://docs.github.com/en/actions/how-tos/managing-workflow-runs-and-deployments/managing-deployments/managing-environments-for-deployment
+
+name: Promote Dev to QA
+
+on:
+  push:
+    branches: ["main"] # [PLACEHOLDER — replace with your team's actual integration branch]
+  workflow_dispatch: {} # lets you trigger a run manually from the Actions tab for a live demo
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r lab/day11/sample-app/requirements.txt # [PLACEHOLDER — your capstone's own requirements/build file]
+      - name: Run tests
+        run: pytest lab/day11/sample-app/test_app.py # [PLACEHOLDER — your capstone's own test suite]
+
+  deploy-dev:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Deploy to Dev
+        run: echo "[PLACEHOLDER — your team's actual Dev deployment command, e.g. an AWS/Azure CLI deploy step or an existing deploy script]"
+
+  deploy-qa:
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+    # Create this "qa" environment in Settings -> Environments and add a
+    # required reviewer there — that's what makes this job pause for a
+    # human approval instead of running straight through.
+    environment: qa
+    steps:
+      - name: Deploy to QA
+        run: echo "[PLACEHOLDER — your team's actual QA deployment command]"
