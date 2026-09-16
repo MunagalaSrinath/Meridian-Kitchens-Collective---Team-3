@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+requests
+python-dotenv
+psycopg[binary]
+pwdlib[argon2]
+python-jose
+openai
+pypdf
+faiss-cpu
+numpy

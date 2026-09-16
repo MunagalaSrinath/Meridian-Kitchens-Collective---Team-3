@@ -67,6 +67,7 @@
 
 import { useState } from "react";
 import axios from "axios";
+import { API_URL } from "./config";
 
 function StaffLogin({ onLogin }) {
   const [username, setUsername] = useState("");
@@ -85,7 +86,7 @@ function StaffLogin({ onLogin }) {
     setLoading(true);
 
     axios
-      .post("http://127.0.0.1:8000/login", {
+      .post(`${API_URL}/login`, {
         username: username,
         password: password,
       })

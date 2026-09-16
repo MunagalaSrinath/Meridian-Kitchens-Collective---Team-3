@@ -1,12 +1,9 @@
-import os
 import requests
-from dotenv import load_dotenv
-
-load_dotenv()
+from config import CORS_ORIGINS, POWER_AUTOMATE_URL, SECRET_KEY, get_db_connection
 
 
 def send_loyalty_reward_notification(member_name, points_balance, tier, reward):
-    power_automate_url = os.getenv("POWER_AUTOMATE_URL")
+    power_automate_url = POWER_AUTOMATE_URL
 
     if not power_automate_url:
         raise Exception("POWER_AUTOMATE_URL is not configured")
@@ -32,7 +29,6 @@ from fastapi import FastAPI,Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-import psycopg
 from pwdlib import PasswordHash
 from fastapi import Header
 from jose import jwt
@@ -42,7 +38,6 @@ from rag_context import get_rag_context
 from inventory_agent import create_agent_reorder_requests
 
 password_hash = PasswordHash.recommended()
-SECRET_KEY = "meridian-secret-key"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
@@ -90,7 +85,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -172,13 +167,7 @@ def loyalty_reward_notification(data: LoyaltyRewardNotification):
 @app.post("/inventory")
 def add_inventory(item: InventoryItem):
 
-    conn = psycopg.connect(
-        host="localhost",
-        port=5432,
-        dbname="meridian_kitchens",
-        user="postgres",
-        password="srinath@2918"
-    )
+    conn = get_db_connection()
 
     cursor = conn.cursor()
 
@@ -212,13 +201,7 @@ def add_inventory(item: InventoryItem):
 @app.delete("/inventory/{item_id}")
 def delete_inventory(item_id: int):
 
-    conn = psycopg.connect(
-        host="localhost",
-        port=5432,
-        dbname="meridian_kitchens",
-        user="postgres",
-        password="srinath@2918"
-    )
+    conn = get_db_connection()
 
     cursor = conn.cursor()
 
@@ -262,13 +245,7 @@ def update_inventory(
         "message": "Only staff can update inventory"
     }
 
-    conn = psycopg.connect(
-        host="localhost",
-        port=5432,
-        dbname="meridian_kitchens",
-        user="postgres",
-        password="srinath@2918"
-    )
+    conn = get_db_connection()
 
     cursor = conn.cursor()
 
@@ -304,14 +281,7 @@ def update_inventory(
 
 @app.get("/inventory")
 def get_inventory():
-    conn=psycopg.connect(
-        host="localhost",
-        port=5432,
-        dbname="meridian_kitchens",
-        user="postgres",
-        password="srinath@2918"
-
-    )
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM inventory_stock")
     rows = cursor.fetchall()
@@ -342,13 +312,7 @@ def get_inventory():
 @app.get("/inventory/low-stock")
 def get_low_stock():
 
-    conn = psycopg.connect(
-        host="localhost",
-        port=5432,
-        dbname="meridian_kitchens",
-        user="postgres",
-        password="srinath@2918"
-    )
+    conn = get_db_connection()
 
     cursor = conn.cursor()
 
@@ -380,13 +344,7 @@ def get_low_stock():
 @app.get("/loyalty")
 def get_loyalty():
 
-    conn = psycopg.connect(
-        host="localhost",
-        port=5432,
-        dbname="meridian_kitchens",
-        user="postgres",
-        password="srinath@2918"
-    )
+    conn = get_db_connection()
 
     cursor = conn.cursor()
 
@@ -416,13 +374,7 @@ def get_loyalty():
 @app.post("/login")
 def login(data: LoginRequest):
 
-    conn = psycopg.connect(
-        host="localhost",
-        port=5432,
-        dbname="meridian_kitchens",
-        user="postgres",
-        password="srinath@2918"
-    )
+    conn = get_db_connection()
 
     cursor = conn.cursor()
 
@@ -468,13 +420,7 @@ def create_reorder(
             "message": "Only managers can create reorder requests"
         }
 
-    conn = psycopg.connect(
-        host="localhost",
-        port=5432,
-        dbname="meridian_kitchens",
-        user="postgres",
-        password="srinath@2918"
-    )
+    conn = get_db_connection()
 
     cursor = conn.cursor()
 
@@ -586,13 +532,7 @@ def update_reorder_status(
             "message": "Status must be APPROVED or REJECTED"
         }
 
-    conn = psycopg.connect(
-        host="localhost",
-        port=5432,
-        dbname="meridian_kitchens",
-        user="postgres",
-        password="srinath@2918"
-    )
+    conn = get_db_connection()
 
     cursor = conn.cursor()
 
@@ -635,13 +575,7 @@ def get_reorders(
     if current_user.get("role") != "manager":
         return {"message": "Only managers can view reorder requests"}
 
-    conn = psycopg.connect(
-        host="localhost",
-        port=5432,
-        dbname="meridian_kitchens",
-        user="postgres",
-        password="srinath@2918"
-    )
+    conn = get_db_connection()
 
     cursor = conn.cursor()
 
@@ -692,13 +626,7 @@ def get_reorders(
 
 @app.get("/menu")
 def get_menu():
-    conn = psycopg.connect(
-        host="localhost",
-        port=5432,
-        dbname="meridian_kitchens",
-        user="postgres",
-        password="srinath@2918"
-    )
+    conn = get_db_connection()
 
     cursor = conn.cursor()
 
@@ -747,13 +675,7 @@ def get_menu():
 
 @app.get("/outlets")
 def get_outlets():
-    conn = psycopg.connect(
-        host="localhost",
-        port=5432,
-        dbname="meridian_kitchens",
-        user="postgres",
-        password="srinath@2918"
-    )
+    conn = get_db_connection()
 
     cursor = conn.cursor()
 

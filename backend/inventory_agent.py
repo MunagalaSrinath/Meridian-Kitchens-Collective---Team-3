@@ -1,15 +1,9 @@
-import psycopg
+from config import get_db_connection
 
 
 def get_low_stock_items():
 
-    conn = psycopg.connect(
-        host="localhost",
-        port=5432,
-        dbname="meridian_kitchens",
-        user="postgres",
-        password="srinath@2918"
-    )
+    conn = get_db_connection()
 
     cursor = conn.cursor()
 
@@ -89,13 +83,7 @@ def generate_reorder_recommendations():
 
 def get_supplier_for_inventory(inventory_id: int):
 
-    conn = psycopg.connect(
-        host="localhost",
-        port=5432,
-        dbname="meridian_kitchens",
-        user="postgres",
-        password="srinath@2918"
-    )
+    conn = get_db_connection()
 
     cursor = conn.cursor()
 
@@ -143,13 +131,7 @@ def create_agent_reorder_requests():
 
     recommendations = run_inventory_agent()
 
-    conn = psycopg.connect(
-        host="localhost",
-        port=5432,
-        dbname="meridian_kitchens",
-        user="postgres",
-        password="srinath@2918"
-    )
+    conn = get_db_connection()
 
     cursor = conn.cursor()
 

@@ -1293,6 +1293,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import Menu from "./Menu";
 import StaffLogin from "./StaffLogin";
+import { API_URL } from "./config";
 import "./App.css";
 
 function App() {
@@ -1329,7 +1330,6 @@ function App() {
 
   // Login
   const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const [token, setToken] = useState("");
   const [role, setRole] = useState("");
   const [outlets, setOutlets] = useState([]);
@@ -1358,7 +1358,7 @@ function App() {
 
   const fetchInventory = () => {
     axios
-      .get("http://127.0.0.1:8000/inventory")
+      .get(`${API_URL}/inventory`)
       .then((response) => {
         setInventory(response.data.inventory);
       })
@@ -1373,7 +1373,7 @@ function App() {
 
   const fetchLoyalty = () => {
     axios
-      .get("http://127.0.0.1:8000/loyalty")
+      .get(`${API_URL}/loyalty`)
       .then((response) => {
         setLoyalty(response.data.loyalty);
       })
@@ -1388,7 +1388,7 @@ function App() {
 
   const fetchReorders = (authToken) => {
     axios
-      .get("http://127.0.0.1:8000/reorders", {
+      .get(`${API_URL}/reorders`, {
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
@@ -1410,7 +1410,7 @@ function App() {
 
   const fetchOutlets = () => {
     axios
-      .get("http://127.0.0.1:8000/outlets")
+      .get(`${API_URL}/outlets`)
       .then((response) => {
         setOutlets(response.data.outlets);
       })
@@ -1433,7 +1433,7 @@ function App() {
 
     axios
       .post(
-        "http://127.0.0.1:8000/ai/inventory-agent",
+        `${API_URL}/ai/inventory-agent`,
         {},
         {
           headers: {
@@ -1490,7 +1490,7 @@ function App() {
     }
 
     axios
-      .post("http://127.0.0.1:8000/inventory", {
+      .post(`${API_URL}/inventory`, {
         ingredient: newIngredient,
         outlet: newOutlet,
         quantity: Number(newQuantity),
@@ -1539,7 +1539,7 @@ function App() {
 
     axios
       .put(
-        `http://127.0.0.1:8000/inventory/${editingItem.id}`,
+        `${API_URL}/inventory/${editingItem.id}`,
         {
           quantity: Number(editQuantity),
           reorder_threshold:
@@ -1591,7 +1591,7 @@ function App() {
 
     axios
       .post(
-        "http://127.0.0.1:8000/reorders",
+        `${API_URL}/reorders`,
         {
           inventory_id: selectedItem.id,
           quantity_requested: Number(reorderQuantity),
@@ -1629,7 +1629,7 @@ function App() {
   const updateReorderStatus = (reorderId, status) => {
     axios
       .put(
-        `http://127.0.0.1:8000/reorders/${reorderId}`,
+        `${API_URL}/reorders/${reorderId}`,
         {
           status: status,
         },
@@ -1722,7 +1722,6 @@ function App() {
     setToken("");
     setRole("");
     setUsername("");
-    setPassword("");
 
     setSelectedItem(null);
     setReorderQuantity("");

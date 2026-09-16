@@ -335,6 +335,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import ReactMarkdown from "react-markdown";
+import { API_URL } from "./config";
 
 function Menu({ onStaffLogin }) {
   const [menuItems, setMenuItems] = useState([]);
@@ -356,7 +357,7 @@ function Menu({ onStaffLogin }) {
   useEffect(() => {
     // Fetch all menu items
     axios
-      .get("http://127.0.0.1:8000/menu")
+      .get(`${API_URL}/menu`)
       .then((response) => {
         setMenuItems(response.data.menu || []);
       })
@@ -366,7 +367,7 @@ function Menu({ onStaffLogin }) {
 
     // Fetch outlets
     axios
-      .get("http://127.0.0.1:8000/outlets")
+      .get(`${API_URL}/outlets`)
       .then((response) => {
         setOutlets(response.data.outlets || []);
       })
@@ -389,7 +390,7 @@ function Menu({ onStaffLogin }) {
     setAiAnswer("");
 
     axios
-      .post("http://127.0.0.1:8000/ai/menu-assistant", {
+      .post(`${API_URL}/ai/menu-assistant`, {
         question: aiQuestion,
       })
       .then((response) => {
