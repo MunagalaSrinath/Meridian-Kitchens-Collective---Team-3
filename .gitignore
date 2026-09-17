@@ -7,6 +7,7 @@ backend/**/__pycache__/
 # Environment variables / secrets
 .env
 backend/.env
+backend/.env.docker
 
 # Node
 frontend/node_modules/

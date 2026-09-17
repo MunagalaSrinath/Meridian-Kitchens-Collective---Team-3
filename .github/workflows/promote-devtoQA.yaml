@@ -1,52 +1,81 @@
-# Day 20 example — CI/CD promotion pipeline: Dev -> QA with an approval gate
-#
-# Copy this file into your capstone repository at
-# .github/workflows/promote-dev-to-qa.yml, then replace every
-# [PLACEHOLDER — ...] below with your team's actual values before running it.
-# As written, it builds/tests/deploys lab/day11/sample-app — point every
-# path at your own capstone's build, test, and deploy steps instead once
-# they're ready.
-#
-# Sources:
-#   https://docs.github.com/en/actions/get-started/understand-github-actions
-#   https://docs.github.com/en/actions/how-tos/managing-workflow-runs-and-deployments/managing-deployments/managing-environments-for-deployment
-
-name: Promote Dev to QA
+name: Meridian Kitchens CI/CD
 
 on:
   push:
-    branches: ["main"] # [PLACEHOLDER — replace with your team's actual integration branch]
-  workflow_dispatch: {} # lets you trigger a run manually from the Actions tab for a live demo
+    branches: ["main"]
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
+
   build-and-test:
+    name: Build and Test
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install dependencies
+
+      - name: Install backend dependencies
         working-directory: backend
-        run: pip install -r requirements.txt # [PLACEHOLDER — your capstone's own requirements/build file]
-      # - name: Run tests
-      #   run: pytest lab/day11/sample-app/test_app.py # [PLACEHOLDER — your capstone's own test suite]
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-  deploy-dev:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    environment: dev
-    steps:
-      - name: Deploy to Dev
-        run: echo "[PLACEHOLDER — your team's actual Dev deployment command, e.g. an AWS/Azure CLI deploy step or an existing deploy script]"
+      - name: Validate Python code
+        working-directory: backend
+        run: |
+          python -m compileall .
 
-  deploy-qa:
-    needs: deploy-dev
-    runs-on: ubuntu-latest
-    # Create this "qa" environment in Settings -> Environments and add a
-    # required reviewer there — that's what makes this job pause for a
-    # human approval instead of running straight through.
-    environment: qa
-    steps:
-      - name: Deploy to QA
-        run: echo "[PLACEHOLDER — your team's actual QA deployment command]"
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract backend container metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest
+
+      - name: Build and publish backend container
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Extract frontend container metadata
+        id: frontend-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}-frontend
+          tags: |
+            type=raw,value=latest
+
+      - name: Build and publish frontend container
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          build-args: |
+            VITE_API_URL=${{ vars.VITE_API_URL || 'http://localhost:8000' }}
+          push: true
+          tags: ${{ steps.frontend-meta.outputs.tags }}
+          labels: ${{ steps.frontend-meta.outputs.labels }}

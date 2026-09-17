@@ -1,60 +1,156 @@
+# services:
+#   postgres:
+#     image: postgres:16-alpine
+#     restart: unless-stopped
+#     environment:
+#       POSTGRES_DB: meridian_kitchens
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-meridian_dev_password}
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U postgres -d meridian_kitchens"]
+#       interval: 5s
+#       timeout: 5s
+#       retries: 10
+
+#   backend:
+#     build:
+#       context: ./backend
+#     restart: unless-stopped
+#     env_file:
+#       - ./backend/.env
+#     environment:
+#       DB_HOST: postgres
+#       DB_PASSWORD: ${POSTGRES_PASSWORD:-meridian_dev_password}
+#     depends_on:
+#       seed:
+#         condition: service_completed_successfully
+#     ports:
+#       - "8000:8000"
+
+#   seed:
+#     build:
+#       context: ./backend
+#     env_file:
+#       - ./backend/.env.docker
+#     environment:
+#       DB_HOST: postgres
+#       DB_PASSWORD: ${POSTGRES_PASSWORD:-meridian_dev_password}
+#     depends_on:
+#       postgres:
+#         condition: service_healthy
+#     command: ["python", "seed.py"]
+#     restart: "no"
+
+#   frontend:
+#     build:
+#       context: ./frontend
+#       args:
+#         VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+#     restart: unless-stopped
+#     env_file:
+#       - ./frontend/.env
+#     depends_on:
+#       - backend
+#     ports:
+#       - "3000:3000"
+
+# volumes:
+#   postgres_data:
 services:
+
+  # ============================================================
+  # PostgreSQL Database
+  # ============================================================
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+
     environment:
       POSTGRES_DB: meridian_kitchens
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-meridian_dev_password}
+
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d meridian_kitchens"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  backend:
-    build:
-      context: ./backend
-    restart: unless-stopped
-    env_file:
-      - ./backend/.env
-    environment:
-      DB_HOST: postgres
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-meridian_dev_password}
-    depends_on:
-      seed:
-        condition: service_completed_successfully
-    ports:
-      - "8000:8000"
 
+  # ============================================================
+  # Database Seed
+  # ============================================================
   seed:
     build:
       context: ./backend
+
     env_file:
-      - ./backend/.env
+      - ./backend/.env.docker
+
     environment:
       DB_HOST: postgres
       DB_PASSWORD: ${POSTGRES_PASSWORD:-meridian_dev_password}
+
     depends_on:
       postgres:
         condition: service_healthy
+
     command: ["python", "seed.py"]
+
     restart: "no"
 
+
+  # ============================================================
+  # FastAPI Backend
+  # ============================================================
+  backend:
+    image: ghcr.io/munagalasrinath/meridian-kitchens-collective---team-3:latest
+
+    restart: unless-stopped
+
+    env_file:
+      - ./backend/.env
+
+    environment:
+      DB_HOST: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-meridian_dev_password}
+
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+
+    ports:
+      - "8000:8000"
+
+
+  # ============================================================
+  # React Frontend
+  # ============================================================
   frontend:
     build:
       context: ./frontend
       args:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+
     restart: unless-stopped
+
     env_file:
       - ./frontend/.env
+
     depends_on:
       - backend
+
     ports:
       - "3000:3000"
 
+
+# ==============================================================
+# Persistent Volumes
+# ==============================================================
 volumes:
   postgres_data:

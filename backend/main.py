@@ -115,6 +115,12 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class LoyaltyMemberCreate(BaseModel):
+    member_name: str
+    points_balance: int
+    tier: str
+
+
 
 class LoyaltyRewardNotification(BaseModel):
     member_name: str
@@ -339,6 +345,48 @@ def get_low_stock():
         })
 
     return inventory
+
+
+@app.post("/loyalty")
+def add_loyalty_member(
+    data: LoyaltyMemberCreate,
+    current_user: dict = Depends(get_current_user)
+):
+    # Only managers can add loyalty members
+    if current_user.get("role") != "manager":
+        return {
+            "message": "Only managers can add loyalty members"
+        }
+
+    conn = get_db_connection()
+
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        INSERT INTO loyalty_account
+        (member_name, points_balance, tier)
+        VALUES (%s, %s, %s)
+        RETURNING id
+        """,
+        (
+            data.member_name,
+            data.points_balance,
+            data.tier
+        )
+    )
+
+    new_id = cursor.fetchone()[0]
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    return {
+        "message": "Loyalty member added successfully",
+        "id": new_id
+    }
 
 
 @app.get("/loyalty")
